@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -47,6 +48,19 @@ public class Player : MonoBehaviour
     [Tooltip("Nome do estado de Animação Parado (Idle) no Animator Controller.")]
     [SerializeField] private string idleStateName = "Idle";
 
+    [Header("Vidas & Invencibilidade")]
+    [Tooltip("Quantidade máxima de vidas do jogador.")]
+    [SerializeField] private int maxLives = 3;
+
+    [Tooltip("Duração do tempo de invencibilidade ao levar um hit (em segundos).")]
+    [SerializeField] private float invincibilityDuration = 1.0f;
+
+    [Tooltip("Intervalo da piscada durante a invencibilidade.")]
+    [SerializeField] private float blinkInterval = 0.1f;
+
+    [Tooltip("Prefab de explosão spawnado quando o Player perde todas as vidas.")]
+    [SerializeField] private GameObject explosionPrefab;
+
     [Header("Configurações de Disparo")]
     [Tooltip("Prefab da Bullet / Kit de Animação do tiro que será disparado.")]
     [SerializeField] private GameObject bulletPrefab;
@@ -65,6 +79,17 @@ public class Player : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private Collider2D playerCollider;
 
+    private int currentLives;
+    private bool isInvincible = false;
+    private Coroutine invincibilityCoroutine;
+
+    // Power-Up State
+    private bool isTripleShotActive = false;
+    private Coroutine tripleShotCoroutine;
+    private Coroutine timeSlowCoroutine;
+
+    public static float globalTimeSlowFactor { get; private set; } = 1f;
+
     private void Start()
     {
         mainCamera = Camera.main;
@@ -75,6 +100,16 @@ public class Player : MonoBehaviour
         {
             animator = GetComponent<Animator>();
         }
+
+        currentLives = maxLives;
+        if (UIManager.Instance != null)
+        {
+            if (spriteRenderer != null && spriteRenderer.sprite != null)
+            {
+                UIManager.Instance.SetPlayerSpriteIfMissing(spriteRenderer.sprite);
+            }
+            UIManager.Instance.UpdateLivesUI(currentLives);
+        }
     }
 
     private void Update()
@@ -83,9 +118,6 @@ public class Player : MonoBehaviour
         HandleShooting();
     }
 
-    /// <summary>
-    /// Gerencia a movimentação com WASD, Setinhas e Controle.
-    /// </summary>
     private void HandleMovement()
     {
         float moveX = 0f;
@@ -117,7 +149,6 @@ public class Player : MonoBehaviour
         Vector3 moveDirection = new Vector3(moveX, moveY, 0f).normalized;
         transform.position += moveDirection * moveSpeed * Time.deltaTime;
 
-        // Atualiza as animações de movimentação horizontal de forma segura
         UpdateMovementAnimations(moveX);
 
         if (clampToScreen)
@@ -126,21 +157,15 @@ public class Player : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Controla os parâmetros e estados do Animator verificando com segurança se o Controller e os estados existem.
-    /// </summary>
     private void UpdateMovementAnimations(float moveX)
     {
-        // Se não houver Animator ou o Animator Controller não estiver atribuído na Unity, ignora sem gerar erros
         if (animator == null || animator.runtimeAnimatorController == null) return;
 
-        // 1. Atualiza o parâmetro Float (ex: moveX = -1, 0, 1) se existir no Animator
         if (!string.IsNullOrEmpty(moveXParamName) && HasParameter(animator, moveXParamName, AnimatorControllerParameterType.Float))
         {
             animator.SetFloat(moveXParamName, moveX);
         }
 
-        // 2. Atualiza os parâmetros Bools se existirem
         if (!string.IsNullOrEmpty(isRightParamName) && HasParameter(animator, isRightParamName, AnimatorControllerParameterType.Bool))
         {
             animator.SetBool(isRightParamName, moveX > 0.1f);
@@ -151,7 +176,6 @@ public class Player : MonoBehaviour
             animator.SetBool(isLeftParamName, moveX < -0.1f);
         }
 
-        // 3. Reprodução direta por estado (apenas se a opção estiver ativada e o estado existir no Animator Controller)
         if (useDirectStatePlay)
         {
             string targetState = moveX > 0.1f ? rightStateName : (moveX < -0.1f ? leftStateName : idleStateName);
@@ -167,9 +191,6 @@ public class Player : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Verifica se um determinado parâmetro existe no Animator Controller para evitar warnings no console.
-    /// </summary>
     private bool HasParameter(Animator anim, string paramName, AnimatorControllerParameterType type)
     {
         if (anim == null || anim.runtimeAnimatorController == null || string.IsNullOrEmpty(paramName)) return false;
@@ -181,9 +202,6 @@ public class Player : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// Gerencia o disparo ao pressionar a tecla Espaço.
-    /// </summary>
     private void HandleShooting()
     {
         bool isShootPressed = false;
@@ -218,9 +236,6 @@ public class Player : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Instancia a bullet e define a tag solicitada.
-    /// </summary>
     private void Shoot()
     {
         if (bulletPrefab == null)
@@ -230,9 +245,26 @@ public class Player : MonoBehaviour
         }
 
         Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
-        Quaternion spawnRot = firePoint != null ? firePoint.rotation : Quaternion.identity;
 
-        GameObject bullet = Instantiate(bulletPrefab, spawnPos, spawnRot);
+        if (isTripleShotActive)
+        {
+            // Dispara 3 projéteis paralelos ao mesmo tempo
+            float offset = 0.45f;
+            SpawnSingleBullet(spawnPos);
+            SpawnSingleBullet(spawnPos - transform.right * offset);
+            SpawnSingleBullet(spawnPos + transform.right * offset);
+        }
+        else
+        {
+            // Disparo normal (1 projétil)
+            SpawnSingleBullet(spawnPos);
+        }
+    }
+
+    private void SpawnSingleBullet(Vector3 position)
+    {
+        Quaternion spawnRot = firePoint != null ? firePoint.rotation : Quaternion.identity;
+        GameObject bullet = Instantiate(bulletPrefab, position, spawnRot);
 
         if (!string.IsNullOrEmpty(bulletTag))
         {
@@ -248,8 +280,149 @@ public class Player : MonoBehaviour
     }
 
     /// <summary>
-    /// Mantém a nave estritamente dentro do campo de visão da câmera (Viewport).
+    /// Ativa o Power-Up de Tiro Triplo (3 tiros paralelos) por uma determinada duração.
     /// </summary>
+    public void ActivateTripleShot(float duration)
+    {
+        if (tripleShotCoroutine != null)
+        {
+            StopCoroutine(tripleShotCoroutine);
+        }
+        tripleShotCoroutine = StartCoroutine(TripleShotRoutine(duration));
+    }
+
+    private IEnumerator TripleShotRoutine(float duration)
+    {
+        isTripleShotActive = true;
+        yield return new WaitForSeconds(duration);
+        isTripleShotActive = false;
+        tripleShotCoroutine = null;
+    }
+
+    /// <summary>
+    /// Ativa o Power-Up de Desaceleração do Tempo (Time Slow) por uma determinada duração.
+    /// </summary>
+    public void ActivateTimeSlow(float duration, float slowFactor)
+    {
+        if (timeSlowCoroutine != null)
+        {
+            StopCoroutine(timeSlowCoroutine);
+        }
+        timeSlowCoroutine = StartCoroutine(TimeSlowRoutine(duration, slowFactor));
+    }
+
+    private IEnumerator TimeSlowRoutine(float duration, float slowFactor)
+    {
+        globalTimeSlowFactor = slowFactor;
+        Parallax.globalSpeedMultiplier = slowFactor;
+
+        yield return new WaitForSeconds(duration);
+
+        globalTimeSlowFactor = 1f;
+        Parallax.globalSpeedMultiplier = 1f;
+        timeSlowCoroutine = null;
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        HandlePlayerCollision(other.gameObject);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandlePlayerCollision(collision.gameObject);
+    }
+
+    private void HandlePlayerCollision(GameObject other)
+    {
+        if (isInvincible) return;
+
+        bool isEnemyBullet = other.CompareTag("EnemyBullet");
+        bool isEnemyShip = other.CompareTag("Enemy");
+
+        if (isEnemyBullet || isEnemyShip)
+        {
+            TakeDamage(1);
+
+            if (isEnemyBullet)
+            {
+                Destroy(other);
+            }
+            else if (isEnemyShip && other.TryGetComponent<Enemy>(out Enemy enemy))
+            {
+                enemy.TakeDamage(999);
+            }
+        }
+    }
+
+    public void TakeDamage(int amount)
+    {
+        if (isInvincible) return;
+
+        currentLives -= amount;
+
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateLivesUI(currentLives);
+        }
+
+        if (currentLives <= 0)
+        {
+            Die();
+        }
+        else
+        {
+            StartInvincibility();
+        }
+    }
+
+    private void StartInvincibility()
+    {
+        if (invincibilityCoroutine != null)
+        {
+            StopCoroutine(invincibilityCoroutine);
+        }
+        invincibilityCoroutine = StartCoroutine(InvincibilityRoutine());
+    }
+
+    private IEnumerator InvincibilityRoutine()
+    {
+        isInvincible = true;
+        float elapsed = 0f;
+
+        while (elapsed < invincibilityDuration)
+        {
+            if (spriteRenderer != null)
+            {
+                Color color = spriteRenderer.color;
+                color.a = (color.a == 1f) ? 0.25f : 1f;
+                spriteRenderer.color = color;
+            }
+
+            yield return new WaitForSeconds(blinkInterval);
+            elapsed += blinkInterval;
+        }
+
+        if (spriteRenderer != null)
+        {
+            Color color = spriteRenderer.color;
+            color.a = 1f;
+            spriteRenderer.color = color;
+        }
+
+        isInvincible = false;
+        invincibilityCoroutine = null;
+    }
+
+    private void Die()
+    {
+        if (explosionPrefab != null)
+        {
+            Instantiate(explosionPrefab, transform.position, Quaternion.identity);
+        }
+        gameObject.SetActive(false);
+    }
+
     private void ClampToScreenBounds()
     {
         if (mainCamera == null) mainCamera = Camera.main;

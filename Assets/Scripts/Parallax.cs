@@ -8,9 +8,18 @@ public class Parallax : MonoBehaviour
         ScreenBounds    // Para nuvens e objetos menores que a tela (reaparecem no topo ao saírem embaixo)
     }
 
+    public static float globalSpeedMultiplier = 1f;
+
     [Header("Configurações Gerais")]
     [SerializeField] private LoopMode loopMode = LoopMode.FullBackground;
     [SerializeField] private float parallaxEffect = 1f;
+
+    [Header("Efeito Visual de Time Slow (Escurecer Background)")]
+    [Tooltip("Cor do background quando o efeito de lentidão temporal está ativo.")]
+    [SerializeField] private Color timeSlowBackgroundColor = new Color(0.35f, 0.35f, 0.35f, 1f);
+
+    [Tooltip("Velocidade da transição de cor ao escurecer/clarear o fundo.")]
+    [SerializeField] private float dimTransitionSpeed = 6f;
 
     [Header("Configurações da Câmera / Tela")]
     [Tooltip("Detecta a altura da Câmera Principal automaticamente.")]
@@ -18,11 +27,15 @@ public class Parallax : MonoBehaviour
     [SerializeField] private float customScreenHeight = 10f;
 
     private float spriteHeight;
+    private SpriteRenderer spriteRenderer;
+    private Color normalBackgroundColor = Color.white;
 
     void Start()
     {
         if (TryGetComponent<SpriteRenderer>(out SpriteRenderer sr))
         {
+            spriteRenderer = sr;
+            normalBackgroundColor = sr.color;
             spriteHeight = sr.bounds.size.y;
         }
         else
@@ -33,12 +46,14 @@ public class Parallax : MonoBehaviour
 
     void Update()
     {
-        // Movimento continuo para baixo
-        transform.position += Vector3.down * Time.deltaTime * parallaxEffect;
+        // Movimento continuo para baixo (afetado pelo multiplicador de Time Slow)
+        transform.position += Vector3.down * Time.deltaTime * parallaxEffect * globalSpeedMultiplier;
+
+        // Transição de cor suave para escurecer o background no Time Slow
+        HandleBackgroundDimming();
 
         if (loopMode == LoopMode.FullBackground)
         {
-            // Loop para mapas/fundo de tela cheia
             if (transform.position.y <= -spriteHeight)
             {
                 transform.position += new Vector3(0, spriteHeight * 2f, 0);
@@ -46,7 +61,6 @@ public class Parallax : MonoBehaviour
         }
         else if (loopMode == LoopMode.ScreenBounds)
         {
-            // Loop para nuvens: quando sai por baixo da tela, reaparece no topo
             float screenHeight = GetScreenHeight();
             float cameraY = (autoDetectCamera && Camera.main != null) ? Camera.main.transform.position.y : 0f;
             
@@ -58,6 +72,17 @@ public class Parallax : MonoBehaviour
                 transform.position += new Vector3(0, loopDistance, 0);
             }
         }
+    }
+
+    /// <summary>
+    /// Transiciona suavemente a cor do background para escuro durante o Time Slow e retorna à cor normal ao encerrar.
+    /// </summary>
+    private void HandleBackgroundDimming()
+    {
+        if (spriteRenderer == null) return;
+
+        Color targetColor = (globalSpeedMultiplier < 0.99f) ? timeSlowBackgroundColor : normalBackgroundColor;
+        spriteRenderer.color = Color.Lerp(spriteRenderer.color, targetColor, Time.deltaTime * dimTransitionSpeed);
     }
 
     private float GetScreenHeight()

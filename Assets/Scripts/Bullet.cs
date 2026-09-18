@@ -12,6 +12,16 @@ public class Bullet : MonoBehaviour
     [Tooltip("Tag aplicada ao projétil.")]
     [SerializeField] private string bulletTag = "Bullet";
 
+    [Header("Movimento ZigZag")]
+    [Tooltip("Ativar movimento em formato de ZigZag/senoidal.")]
+    [SerializeField] private bool isZigZag = false;
+
+    [Tooltip("Frequência da oscilação do ZigZag.")]
+    [SerializeField] private float zigZagFrequency = 6f;
+
+    [Tooltip("Amplitude (largura) da oscilação do ZigZag.")]
+    [SerializeField] private float zigZagAmplitude = 2.5f;
+
     [Header("Destruição Fora da Tela")]
     [Tooltip("Destruir automaticamente ao sair da área da câmera?")]
     [SerializeField] private bool destroyOffScreen = true;
@@ -51,8 +61,18 @@ public class Bullet : MonoBehaviour
 
     private void Update()
     {
-        // Move o projétil na direção e velocidade especificadas
-        transform.Translate(direction.normalized * speed * Time.deltaTime, Space.World);
+        float timeSlowMult = CompareTag("EnemyBullet") ? Parallax.globalSpeedMultiplier : 1f;
+        Vector3 move = (Vector3)(direction.normalized * speed * timeSlowMult * Time.deltaTime);
+
+        // Aplica o movimento em ZigZag se ativado
+        if (isZigZag)
+        {
+            float sideOffset = Mathf.Sin((Time.time - spawnTime) * zigZagFrequency) * zigZagAmplitude * timeSlowMult;
+            Vector3 sideVector = new Vector3(direction.y, -direction.x, 0f).normalized;
+            move += sideVector * sideOffset * Time.deltaTime;
+        }
+
+        transform.position += move;
 
         if (destroyOffScreen)
         {
@@ -61,12 +81,22 @@ public class Bullet : MonoBehaviour
     }
 
     /// <summary>
-    /// Permite definir a direção e velocidade do projétil via código (ex: na hora de instanciar pelo Inimigo ou Player).
+    /// Permite definir a direção e velocidade do projétil via código.
     /// </summary>
     public void Setup(Vector2 newDirection, float newSpeed)
     {
         direction = newDirection;
         speed = newSpeed;
+    }
+
+    /// <summary>
+    /// Ativa o movimento em ZigZag no projétil.
+    /// </summary>
+    public void EnableZigZag(float frequency = 6f, float amplitude = 2.5f)
+    {
+        isZigZag = true;
+        zigZagFrequency = frequency;
+        zigZagAmplitude = amplitude;
     }
 
     /// <summary>
@@ -90,7 +120,6 @@ public class Bullet : MonoBehaviour
     /// </summary>
     private void OnBecameInvisible()
     {
-        // Aguarda 0.2s após o nascimento para evitar destruição no momento do Instantiate
         if (destroyOffScreen && Time.time - spawnTime > 0.2f)
         {
             Destroy(gameObject);
@@ -102,7 +131,6 @@ public class Bullet : MonoBehaviour
     /// </summary>
     private void CheckOffScreenAndDestroy()
     {
-        // Aguarda 0.2s após o nascimento para evitar destruição no frame 0
         if (Time.time - spawnTime < 0.2f) return;
 
         if (mainCamera == null) mainCamera = Camera.main;

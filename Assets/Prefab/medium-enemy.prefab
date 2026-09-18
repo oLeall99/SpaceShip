@@ -12,9 +12,11 @@ GameObject:
   - component: {fileID: 9195684184442893261}
   - component: {fileID: 6392536947218192763}
   - component: {fileID: 1305884027773750287}
+  - component: {fileID: -1319627034017694308}
+  - component: {fileID: -7615452087797990547}
   m_Layer: 0
   m_Name: medium-enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -143,3 +145,78 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &-1319627034017694308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8021479908294044028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c7ca77e9f918704b9793aa40d613194, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  enemyType: 1
+  overrideHealth: 0
+  customHealth: 1
+  speed: 2
+  mediumZigZagFrequency: 4
+  mediumZigZagAmplitude: 3.5
+  bigHorizontalPauseInterval: 3
+  bigHorizontalDuration: 2.5
+  bigHorizontalSpeed: 4
+  canShoot: 1
+  bulletPrefab: {fileID: 2723767922928132215, guid: 30fd227b797848d45a10b302658da06b, type: 3}
+  firePoint: {fileID: 0}
+  fireRate: 0.8
+  bulletSpeed: 8
+  enemyBulletTag: EnemyBullet
+  explosionPrefab: {fileID: 1333666219086641994, guid: 9285525a716af294b8c3ce6326f2853f, type: 3}
+  fallbackExplosionDuration: 1
+--- !u!61 &-7615452087797990547
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8021479908294044028}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 0.32, y: 0.16}
+    newSize: {x: 0.32, y: 0.16}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 0.32, y: 0.16}
+  m_EdgeRadius: 0
