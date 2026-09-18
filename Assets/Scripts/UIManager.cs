@@ -58,6 +58,10 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
+        if (GameManager.Instance != null)
+        {
+            currentScore = GameManager.Instance.totalScore;
+        }
         UpdateScoreUI();
     }
 
@@ -165,6 +169,14 @@ public class UIManager : MonoBehaviour
         scoreText.text = "Score: 0";
     }
 
+    private void EnsureCanvasOnTop()
+    {
+        if (canvas != null)
+        {
+            canvas.sortingOrder = 100;
+        }
+    }
+
     /// <summary>
     /// Define automaticamente o sprite da nave a partir do Player caso não tenha sido atribuído no Inspector.
     /// </summary>
@@ -202,6 +214,10 @@ public class UIManager : MonoBehaviour
     public void AddScore(int amount)
     {
         currentScore += amount;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.AddScore(amount);
+        }
         UpdateScoreUI();
     }
 

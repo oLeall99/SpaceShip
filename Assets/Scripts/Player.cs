@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 
 public class Player : MonoBehaviour
 {
+    public static Player Instance { get; private set; }
+
     [Header("Movimentação")]
     [Tooltip("Velocidade de movimento do jogador.")]
     [SerializeField] private float moveSpeed = 8f;
@@ -90,6 +92,11 @@ public class Player : MonoBehaviour
 
     public static float globalTimeSlowFactor { get; private set; } = 1f;
 
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     private void Start()
     {
         mainCamera = Camera.main;
@@ -116,6 +123,24 @@ public class Player : MonoBehaviour
     {
         HandleMovement();
         HandleShooting();
+    }
+
+    /// <summary>
+    /// Recupera vidas do jogador (até o máximo de maxLives) e atualiza o display visual.
+    /// </summary>
+    public void RecoverLife(int amount = 1)
+    {
+        if (currentLives < maxLives)
+        {
+            currentLives = Mathf.Min(maxLives, currentLives + amount);
+
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.UpdateLivesUI(currentLives);
+            }
+
+            Debug.Log($"Player: 1 Vida recuperada por pontuação! Vidas atuais: {currentLives}");
+        }
     }
 
     private void HandleMovement()
@@ -248,7 +273,6 @@ public class Player : MonoBehaviour
 
         if (isTripleShotActive)
         {
-            // Dispara 3 projéteis paralelos ao mesmo tempo
             float offset = 0.45f;
             SpawnSingleBullet(spawnPos);
             SpawnSingleBullet(spawnPos - transform.right * offset);
@@ -256,7 +280,6 @@ public class Player : MonoBehaviour
         }
         else
         {
-            // Disparo normal (1 projétil)
             SpawnSingleBullet(spawnPos);
         }
     }
@@ -279,9 +302,35 @@ public class Player : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Ativa o Power-Up de Tiro Triplo (3 tiros paralelos) por uma determinada duração.
-    /// </summary>
+    public static void ResetStaticModifiers()
+    {
+        globalTimeSlowFactor = 1f;
+        Parallax.globalSpeedMultiplier = 1f;
+    }
+
+    public void ResetPowerUps()
+    {
+        if (tripleShotCoroutine != null)
+        {
+            StopCoroutine(tripleShotCoroutine);
+            tripleShotCoroutine = null;
+        }
+
+        if (timeSlowCoroutine != null)
+        {
+            StopCoroutine(timeSlowCoroutine);
+            timeSlowCoroutine = null;
+        }
+
+        isTripleShotActive = false;
+        ResetStaticModifiers();
+    }
+
+    private void OnDisable()
+    {
+        ResetPowerUps();
+    }
+
     public void ActivateTripleShot(float duration)
     {
         if (tripleShotCoroutine != null)
@@ -299,9 +348,6 @@ public class Player : MonoBehaviour
         tripleShotCoroutine = null;
     }
 
-    /// <summary>
-    /// Ativa o Power-Up de Desaceleração do Tempo (Time Slow) por uma determinada duração.
-    /// </summary>
     public void ActivateTimeSlow(float duration, float slowFactor)
     {
         if (timeSlowCoroutine != null)
@@ -416,10 +462,18 @@ public class Player : MonoBehaviour
 
     private void Die()
     {
+        ResetPowerUps();
+
         if (explosionPrefab != null)
         {
             Instantiate(explosionPrefab, transform.position, Quaternion.identity);
         }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.TriggerGameOver();
+        }
+
         gameObject.SetActive(false);
     }
 

@@ -91,6 +91,17 @@ public class Enemy : MonoBehaviour
 
     public EnemyType Type => enemyType;
 
+    public bool CanShoot
+    {
+        get => canShoot;
+        set => canShoot = value;
+    }
+
+    public void SetCanShoot(bool allowShooting)
+    {
+        canShoot = allowShooting;
+    }
+
     private void Start()
     {
         mainCamera = Camera.main;

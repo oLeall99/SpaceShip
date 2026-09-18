@@ -14,6 +14,19 @@ public class EnemyWave : MonoBehaviour
     [Tooltip("Prefab do inimigo Big (8 hits, rajada em ZigZag, pausa e patrulha em X).")]
     [SerializeField] private GameObject bigEnemyPrefab;
 
+    [Header("Controle de Disparo dos Inimigos (Override)")]
+    [Tooltip("Permitir que o EnemyWave controle diretamente se cada tipo de inimigo pode atirar?")]
+    [SerializeField] private bool overrideEnemyShooting = true;
+
+    [Tooltip("Permitir que a nave Small atire?")]
+    [SerializeField] private bool smallCanShoot = true;
+
+    [Tooltip("Permitir que a nave Medium atire?")]
+    [SerializeField] private bool mediumCanShoot = true;
+
+    [Tooltip("Permitir que a nave Big atire?")]
+    [SerializeField] private bool bigCanShoot = true;
+
     [Header("Prefabs de Power-Ups")]
     [Tooltip("Prefab do Power-Up de Tiro Triplo.")]
     [SerializeField] private GameObject tripleShotPowerUpPrefab;
@@ -143,6 +156,19 @@ public class EnemyWave : MonoBehaviour
 
         if (enemyObj.TryGetComponent<Enemy>(out Enemy enemyScript))
         {
+            // Override do controle de disparo diretamente via EnemyWave
+            if (overrideEnemyShooting)
+            {
+                bool allowShooting = enemyScript.Type switch
+                {
+                    Enemy.EnemyType.Small => smallCanShoot,
+                    Enemy.EnemyType.Medium => mediumCanShoot,
+                    Enemy.EnemyType.Big => bigCanShoot,
+                    _ => true
+                };
+                enemyScript.SetCanShoot(allowShooting);
+            }
+
             float speedMultiplier = 1f + (currentWave - 1) * 0.10f;
             float fireRateMultiplier = 1f + (currentWave - 1) * 0.15f;
             float bulletSpeedMultiplier = 1f + (currentWave - 1) * 0.12f;
@@ -161,7 +187,7 @@ public class EnemyWave : MonoBehaviour
         {
             Enemy.EnemyType.Small => smallDropChance,
             Enemy.EnemyType.Medium => mediumDropChance,
-            Enemy.EnemyType.Big => 100f, // Big SEMPRE solta 1
+            Enemy.EnemyType.Big => 100f,
             _ => smallDropChance
         };
 

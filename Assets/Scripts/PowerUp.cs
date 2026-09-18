@@ -65,6 +65,11 @@ public class PowerUp : MonoBehaviour
         // Verifica se quem coletou foi o Player
         if (other.CompareTag("Player") || other.GetComponent<Player>() != null)
         {
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.RegisterPowerUpCollected();
+            }
+
             ApplyPowerUpEffect(other);
             SpawnPickupEffect();
             Destroy(gameObject);
