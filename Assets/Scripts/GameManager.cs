@@ -249,28 +249,28 @@ public class GameManager : MonoBehaviour
         contentRect.anchorMin = new Vector2(0.5f, 0.5f);
         contentRect.anchorMax = new Vector2(0.5f, 0.5f);
         contentRect.pivot = new Vector2(0.5f, 0.5f);
-        contentRect.sizeDelta = new Vector2(850, 650);
+        contentRect.sizeDelta = new Vector2(1200, 850);
 
         VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
         layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.spacing = 18f;
+        layout.spacing = 22f;
         layout.childControlWidth = false;
 
-        CreateText(contentObj, "GAME OVER", defaultFont, 56, Color.red, FontStyle.Bold);
+        CreateText(contentObj, "GAME OVER", defaultFont, 80, Color.red, FontStyle.Bold);
 
         int minutes = Mathf.FloorToInt(totalTime / 60f);
         int seconds = Mathf.FloorToInt(totalTime % 60f);
         string timeStr = $"{minutes:00}m {seconds:00}s";
 
-        CreateText(contentObj, $"Pontuação Total: {totalScore}", defaultFont, 38, Color.yellow, FontStyle.Bold);
-        CreateText(contentObj, $"Tempo de Jogo: {timeStr}", defaultFont, 30, Color.white, FontStyle.Normal);
+        CreateText(contentObj, $"Pontuação Total: {totalScore}", defaultFont, 52, Color.yellow, FontStyle.Bold);
+        CreateText(contentObj, $"Tempo de Jogo: {timeStr}", defaultFont, 42, Color.white, FontStyle.Normal);
 
         string killsStr = $"Naves Destruídas:\nSmall: {smallKilled}  |  Medium: {mediumKilled}  |  Big: {bigKilled}";
-        CreateText(contentObj, killsStr, defaultFont, 28, Color.cyan, FontStyle.Normal);
+        CreateText(contentObj, killsStr, defaultFont, 40, Color.cyan, FontStyle.Normal);
 
-        CreateText(contentObj, $"Power-Ups Coletados: {powerUpsCollected}", defaultFont, 28, Color.green, FontStyle.Normal);
+        CreateText(contentObj, $"Power-Ups Coletados: {powerUpsCollected}", defaultFont, 40, Color.green, FontStyle.Normal);
 
-        CreateText(contentObj, "\nPressione qualquer tecla para voltar ao início", defaultFont, 30, Color.white, FontStyle.Italic);
+        CreateText(contentObj, "\nPressione qualquer tecla para voltar ao início", defaultFont, 36, Color.white, FontStyle.Italic);
     }
 
     private Text CreateText(GameObject parent, string textStr, Font font, int size, Color color, FontStyle style)
@@ -284,7 +284,10 @@ public class GameManager : MonoBehaviour
         txt.color = color;
         txt.text = textStr;
         txt.alignment = TextAnchor.MiddleCenter;
-        textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(800, size + 22);
+
+        int lineCount = textStr.Split('\n').Length;
+        float height = (size * 1.35f * lineCount) + 20f;
+        textObj.GetComponent<RectTransform>().sizeDelta = new Vector2(1150, height);
         return txt;
     }
 

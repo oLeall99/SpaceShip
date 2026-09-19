@@ -29,9 +29,14 @@ public class Bullet : MonoBehaviour
     [Tooltip("Tempo limite de vida (em segundos) como garantia de destruição.")]
     [SerializeField] private float maxLifetime = 5f;
 
+    [Header("Colisão e Efeitos")]
+    [Tooltip("Efeito opcional de impacto ao colidir com outro projétil.")]
+    [SerializeField] private GameObject hitEffectPrefab;
+
     private Camera mainCamera;
     private SpriteRenderer spriteRenderer;
     private float spawnTime;
+    private bool isDestroying = false;
 
     private void Start()
     {
@@ -150,6 +155,41 @@ public class Bullet : MonoBehaviour
         if (pos.x < minBounds.x - margin || pos.x > maxBounds.x + margin ||
             pos.y < minBounds.y - margin || pos.y > maxBounds.y + margin)
         {
+            Destroy(gameObject);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        HandleBulletCollision(other.gameObject);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        HandleBulletCollision(collision.gameObject);
+    }
+
+    private void HandleBulletCollision(GameObject other)
+    {
+        if (isDestroying || other == null) return;
+
+        bool isMyBulletPlayer = CompareTag("Bullet");
+        bool isMyBulletEnemy = CompareTag("EnemyBullet");
+
+        bool isOtherBulletPlayer = other.CompareTag("Bullet");
+        bool isOtherBulletEnemy = other.CompareTag("EnemyBullet");
+
+        // Colisão entre projétil do jogador e projétil do inimigo
+        if ((isMyBulletPlayer && isOtherBulletEnemy) || (isMyBulletEnemy && isOtherBulletPlayer))
+        {
+            isDestroying = true;
+
+            if (hitEffectPrefab != null)
+            {
+                Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
+            }
+
+            Destroy(other);
             Destroy(gameObject);
         }
     }

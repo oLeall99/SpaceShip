@@ -365,6 +365,11 @@ public class Enemy : MonoBehaviour
 
     private void AwardScorePoints()
     {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.RegisterEnemyKilled(enemyType);
+        }
+
         if (UIManager.Instance == null) return;
 
         int points = enemyType switch
